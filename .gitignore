@@ -1,0 +1,22 @@
+# Binaries
+bin/
+*.o
+*.out
+*.err
+
+# Editor
+*.swp
+*~
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# PAPI debug
+papi_out_*
+
+# Large files
+*.png
+*.pdf
