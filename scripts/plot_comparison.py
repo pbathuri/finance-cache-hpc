@@ -83,9 +83,6 @@ def load_data():
     return data
 
 
-# ==================================================================
-# Plot 1: GFLOPS vs problem size — all kernels on one figure
-# ==================================================================
 def plot_gflops_all(data):
     fig, ax = plt.subplots(figsize=(10, 6))
 
@@ -137,9 +134,6 @@ def plot_gflops_all(data):
     print("  -> gflops_all_kernels.png")
 
 
-# ==================================================================
-# Plot 2: L1 misses vs problem size — all kernels (log-log)
-# ==================================================================
 def plot_l1miss_all(data):
     fig, ax = plt.subplots(figsize=(10, 6))
 
@@ -191,9 +185,6 @@ def plot_l1miss_all(data):
     print("  -> l1miss_all_kernels.png")
 
 
-# ==================================================================
-# Plot 3: L1 misses per GFLOP — cache efficiency metric
-# ==================================================================
 def plot_l1miss_per_gflop(data):
     fig, ax = plt.subplots(figsize=(10, 6))
 
@@ -251,9 +242,6 @@ def plot_l1miss_per_gflop(data):
     print("  -> l1miss_per_gflop.png")
 
 
-# ==================================================================
-# Plot 4: Cholesky — layout × algorithm comparison
-# ==================================================================
 def plot_cholesky_detail(data):
     if 'cholesky' not in data:
         return
@@ -290,9 +278,6 @@ def plot_cholesky_detail(data):
     print("  -> cholesky_layout_algo.png")
 
 
-# ==================================================================
-# Plot 5: MC Paths — phase transition in L1 misses at d ≈ 128
-# ==================================================================
 def plot_mc_phase_transition(data):
     if 'mc_paths' not in data:
         return
@@ -336,9 +321,6 @@ def plot_mc_phase_transition(data):
     print("  -> mc_paths_phase_transition.png")
 
 
-# ==================================================================
-# Plot 6: GARCH — L1 misses vs T (streaming scan behaviour)
-# ==================================================================
 def plot_garch_scaling(data):
     if 'garch' not in data:
         return
@@ -353,9 +335,7 @@ def plot_garch_scaling(data):
         ax1.plot(pos['T'], pos['l1_miss'], marker='o', ms=4, label=label)
         ax2.plot(grp['T'], grp['gflops'], marker='s', ms=4, label=label)
 
-    # Overlay predicted: 1 miss per cache line per evaluation per pass
-    # cache_line = 64 bytes, double = 8 bytes => 8 doubles per line
-    # misses ≈ T / 8 * n_eval (if r[] doesn't fit in cache)
+    # predicted streaming miss rate: T/8 per eval (8 doubles per cache line)
     if len(df) > 0:
         T_range = np.logspace(np.log10(df['T'].min()), np.log10(df['T'].max()), 50)
         nev_max = df['n_eval'].max()
@@ -385,9 +365,6 @@ def plot_garch_scaling(data):
     print("  -> garch_scaling.png")
 
 
-# ==================================================================
-# Table: Summary comparison at representative problem sizes
-# ==================================================================
 def print_summary_table(data):
     lines = []
     lines.append("=" * 90)
@@ -465,7 +442,6 @@ def print_summary_table(data):
     print(f"  -> {outpath}")
 
 
-# ==================================================================
 def main():
     print("Loading data...")
     data = load_data()

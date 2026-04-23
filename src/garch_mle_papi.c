@@ -1,20 +1,9 @@
 /*
  * garch_mle_papi.c
  *
- * PAPI-instrumented GARCH(1,1) log-likelihood evaluation.
- *
- *   sigma^2_t = omega + alpha * r^2_{t-1} + beta * sigma^2_{t-1}
- *   L(theta) = -0.5 * sum_{t=1}^{T} [ log(sigma^2_t) + r^2_t / sigma^2_t ]
- *
- * Evaluates log-likelihood on a parameter grid (simulating MLE optimiser).
- *
- * Usage:  ./garch_mle  <T>  <N_EVAL>
- *
- * Output (stdout, one CSV line):
- *   kernel,T,n_eval,gflops,l1_miss,seconds
- *
- * Uses PAPI low-level eventset API (PAPI_create_eventset/PAPI_start/PAPI_stop)
- * for direct in-memory L1 miss reads -- no JSON file parsing needed.
+ * PAPI-instrumented GARCH(1,1) log-likelihood over a parameter grid.
+ * Usage:  ./garch_mle <T> <N_EVAL>
+ * Output: kernel,T,n_eval,gflops,l1_miss,seconds
  */
 
 #include <assert.h>
@@ -27,7 +16,7 @@
 void __attribute__((noinline)) do_not_optimize_d(double *_) { (void)_; }
 static volatile double sink;
 
-/* ---- xorshift PRNG ---------------------------------------------- */
+/* xorshift64 PRNG */
 static unsigned long long xor_state = 0xABCDEF0123456789ULL;
 
 static inline unsigned long long xorshift64(void)
@@ -53,7 +42,7 @@ static inline double randn_d(void)
     return sqrt(-2.0 * log(u1)) * cos(6.283185307179586 * u2);
 }
 
-/* ---- generate synthetic GARCH(1,1) return series ---------------- */
+/* generate return series */
 static void generate_returns(double *r, int T,
                              double omega, double alpha, double beta)
 {
@@ -65,7 +54,7 @@ static void generate_returns(double *r, int T,
     }
 }
 
-/* ---- single log-likelihood evaluation --------------------------- */
+/* log-likelihood for one parameter triple */
 static double garch_loglik(const double *r, int T,
                            double omega, double alpha, double beta)
 {
@@ -78,7 +67,6 @@ static double garch_loglik(const double *r, int T,
     return ll;
 }
 
-/* ----------------------------------------------------------------- */
 int main(int argc, char **argv)
 {
     assert(argc == 3);
@@ -111,7 +99,7 @@ int main(int argc, char **argv)
         betas[i]  = 0.85     + frac * 0.10;
     }
 
-    /* ---- PAPI setup: native event for L1 data cache load misses --- */
+    /* PAPI init */
     int ret = PAPI_library_init(PAPI_VER_CURRENT);
     if (ret != PAPI_VER_CURRENT)
         fprintf(stderr, "PAPI_library_init failed: %d\n", ret);
@@ -147,7 +135,7 @@ int main(int argc, char **argv)
 
     clock_gettime(CLOCK_MONOTONIC, &t0);
 
-    /* ---- timed region ---- */
+    /* timed */
     for (int io = 0; io < grid_side; io++)
       for (int ia = 0; ia < grid_side; ia++)
         for (int ib = 0; ib < grid_side; ib++) {

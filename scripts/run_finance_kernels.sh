@@ -20,7 +20,7 @@ echo "L2:        $(lscpu | grep 'L2'  | head -1 | sed 's/.*: *//')"
 echo "L3:        $(lscpu | grep 'L3'  | head -1 | sed 's/.*: *//')"
 echo ""
 
-# ---- modules ----------------------------------------------------
+# modules
 module purge 2>/dev/null || true
 module load papi 2>&1 || echo "WARNING: 'module load papi' failed"
 echo "Loaded modules:"
@@ -31,12 +31,10 @@ echo "PAPI:      $(papi_avail 2>/dev/null | head -3 | tail -1 || echo 'papi_avai
 echo "pkg-config: $(pkg-config --cflags --libs papi 2>&1 || echo 'no pkg-config for papi')"
 echo ""
 
-# ---- working directory -------------------------------------------
 cd "$SLURM_SUBMIT_DIR"
 echo "WORKDIR:   $(pwd)"
 echo ""
 
-# ---- rebuild with latest source ----------------------------------
 rm -rf bin
 make finance 2>&1
 BUILD_RC=$?
@@ -51,12 +49,10 @@ echo ""
 
 BINDIR=bin
 
-# ---- output files ------------------------------------------------
 CHOL_CSV="results_cholesky.csv"
 MC_CSV="results_mcpaths.csv"
 GARCH_CSV="results_garch.csv"
 
-# ---- quick sanity test -------------------------------------------
 echo "=== Sanity test ==="
 TEST_OUT=$("${BINDIR}/cholesky_ROW_MAJOR_ALGO_BANACHIEWICZ" 100 2>&1)
 echo "Output: $TEST_OUT"
@@ -67,9 +63,6 @@ if [ "$L1_VAL" = "0" ] || [ "$L1_VAL" = "-1" ]; then
 fi
 echo ""
 
-# ============================================================
-# 1. CHOLESKY DECOMPOSITION
-# ============================================================
 echo "layout,algo,d,gflops,l1_miss,seconds" > "$CHOL_CSV"
 CHOL_DIMS="10 20 50 100 200 500 1000 2000 3000"
 
@@ -87,9 +80,6 @@ echo "  -> ${CHOL_CSV}: $(tail -n +2 "$CHOL_CSV" | wc -l) data points"
 echo "  Sample: $(tail -1 "$CHOL_CSV")"
 echo ""
 
-# ============================================================
-# 2. MONTE CARLO PATH GENERATION
-# ============================================================
 echo "layout,kernel,d,P,gflops,l1_miss,seconds" > "$MC_CSV"
 MC_DIMS="10 50 100 200 500 1000"
 MC_PATHS="10000 100000"
@@ -108,9 +98,6 @@ echo "  -> ${MC_CSV}: $(tail -n +2 "$MC_CSV" | wc -l) data points"
 echo "  Sample: $(tail -1 "$MC_CSV")"
 echo ""
 
-# ============================================================
-# 3. GARCH(1,1) MLE
-# ============================================================
 echo "kernel,T,n_eval,gflops,l1_miss,seconds" > "$GARCH_CSV"
 GARCH_T="100 500 1000 5000 10000 50000 100000"
 GARCH_NEVAL="125 1000 8000"
@@ -127,9 +114,6 @@ echo "  -> ${GARCH_CSV}: $(tail -n +2 "$GARCH_CSV" | wc -l) data points"
 echo "  Sample: $(tail -1 "$GARCH_CSV")"
 echo ""
 
-# ============================================================
-# Summary
-# ============================================================
 echo "=== All sweeps complete ==="
 echo "Cholesky:   $(tail -n +2 "$CHOL_CSV" | wc -l) data points"
 echo "MC Paths:   $(tail -n +2 "$MC_CSV"   | wc -l) data points"

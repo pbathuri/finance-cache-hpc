@@ -1,23 +1,11 @@
 /*
  * mc_paths_papi.c
  *
- * PAPI-instrumented correlated Monte Carlo path generation.
- *
- * Given a pre-computed Cholesky factor L of a d*d covariance matrix,
- * generates P correlated sample vectors  z = L * eps  where eps ~ N(0,I).
- *
- * The kernel being timed is the matvec  z = L * eps  repeated P times.
- * Cholesky factorisation is done OUTSIDE the timed region.
- *
- * Compile-time:  -DROW_MAJOR  or  -DCOL_MAJOR
- *
- * Usage:  ./mc_paths_<layout>  <d>  <P>
- *
- * Output (stdout, one CSV line):
- *   layout,kernel,d,P,gflops,l1_miss,seconds
- *
- * Uses PAPI low-level eventset API (PAPI_create_eventset/PAPI_start/PAPI_stop)
- * for direct in-memory L1 miss reads -- no JSON file parsing needed.
+ * PAPI-instrumented correlated MC path generation: z = L*eps, P paths.
+ * Cholesky factorisation is outside the timed region.
+ * Compile: -DROW_MAJOR or -DCOL_MAJOR
+ * Usage:   ./mc_paths_<layout> <d> <P>
+ * Output:  layout,kernel,d,P,gflops,l1_miss,seconds
  */
 
 #include <assert.h>
@@ -27,7 +15,7 @@
 #include <stdlib.h>
 #include <time.h>
 
-/* ---- layout ---------------------------------------------------- */
+/* layout macros */
 #if defined(ROW_MAJOR)
   #define IDX(i,j,n) ((i)*(n) + (j))
   #define LAYOUT_STR "rm"
@@ -41,7 +29,7 @@
 void __attribute__((noinline)) do_not_optimize(float *_) { (void)_; }
 static volatile float sink_f;
 
-/* ---- xorshift64 PRNG -------------------------------------------- */
+/* xorshift64 PRNG */
 static unsigned long long xor_state = 0x12345678ABCDEF01ULL;
 
 static inline unsigned long long xorshift64(void)
@@ -67,7 +55,7 @@ static inline float randn(void)
     return sqrtf(-2.0f * logf(u1)) * cosf(6.2831853f * u2);
 }
 
-/* ---- build SPD and factor it (not timed) ------------------------ */
+/* build SPD and factor (not timed) */
 static void build_spd(float *A, int d)
 {
     float *M = (float *)calloc((size_t)d * d, sizeof(float));
@@ -106,7 +94,7 @@ static void cholesky_factor(float *L, const float *A, int d)
     }
 }
 
-/* ---- triangular matvec: z_i = sum_{j<=i} L[i,j]*eps[j] --------- */
+/* triangular matvec */
 static inline void tri_matvec(const float *L, const float *eps,
                               float *z, int d)
 {
@@ -118,7 +106,6 @@ static inline void tri_matvec(const float *L, const float *eps,
     }
 }
 
-/* ----------------------------------------------------------------- */
 int main(int argc, char **argv)
 {
     assert(argc == 3);
@@ -134,12 +121,12 @@ int main(int argc, char **argv)
     float *acc  = (float *)calloc((size_t)d, sizeof(float));
     assert(A && L && eps && z && acc);
 
-    /* ---- setup (not timed) ---- */
+    /* setup */
     build_spd(A, d);
     cholesky_factor(L, A, d);
     free(A);
 
-    /* ---- PAPI setup: native event for L1 data cache load misses --- */
+    /* PAPI init */
     int ret = PAPI_library_init(PAPI_VER_CURRENT);
     if (ret != PAPI_VER_CURRENT)
         fprintf(stderr, "PAPI_library_init failed: %d\n", ret);
@@ -173,7 +160,7 @@ int main(int argc, char **argv)
 
     clock_gettime(CLOCK_MONOTONIC, &t0);
 
-    /* ---- timed region: P paths of triangular matvec ------------- */
+    /* timed: P paths */
     for (int p = 0; p < P; p++) {
         for (int i = 0; i < d; i++)
             eps[i] = randn();

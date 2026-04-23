@@ -2,19 +2,9 @@
  * cholesky_papi.c
  *
  * PAPI-instrumented Cholesky decomposition of a synthetic SPD matrix.
- *
- * Compile-time selection:
- *   Layout:    -DROW_MAJOR  or  -DCOL_MAJOR
- *   Algorithm: -DALGO_BANACHIEWICZ (row-by-row)
- *              -DALGO_CROUT        (column-by-column)
- *
- * Usage:  ./cholesky_<layout>_<algo>  <d>
- *
- * Prints one CSV line to stdout:
- *   layout,algo,d,gflops,l1_miss,seconds
- *
- * Uses PAPI low-level eventset API (PAPI_create_eventset/PAPI_start/PAPI_stop)
- * for direct in-memory L1 miss reads — no JSON file parsing needed.
+ * Compile: -DROW_MAJOR or -DCOL_MAJOR, -DALGO_BANACHIEWICZ or -DALGO_CROUT
+ * Usage:   ./cholesky_<layout>_<algo> <d>
+ * Output:  layout,algo,d,gflops,l1_miss,seconds
  */
 
 #include <assert.h>
@@ -24,7 +14,7 @@
 #include <stdlib.h>
 #include <time.h>
 
-/* ---- layout ---------------------------------------------------- */
+/* layout macros */
 #if defined(ROW_MAJOR)
   #define IDX(i,j,n) ((i)*(n) + (j))
   #define LAYOUT_STR "rm"
@@ -46,7 +36,7 @@
 void __attribute__((noinline)) do_not_optimize(float *_) { (void)_; }
 static volatile float sink_f;
 
-/* ---- build random SPD matrix: A = M M^T + d·I ------------------- */
+/* build SPD: A = MM^T + dI */
 static void build_spd(float *A, int d)
 {
     float *M = (float *)calloc((size_t)d * d, sizeof(float));
@@ -68,7 +58,7 @@ static void build_spd(float *A, int d)
     free(M);
 }
 
-/* ---- Banachiewicz (row-by-row) ---------------------------------- */
+/* Banachiewicz: row-by-row */
 #if defined(ALGO_BANACHIEWICZ)
 static void cholesky(float *L, const float *A, int d)
 {
@@ -86,7 +76,7 @@ static void cholesky(float *L, const float *A, int d)
 }
 #endif
 
-/* ---- Crout (column-by-column) ----------------------------------- */
+/* Crout: column-by-column */
 #if defined(ALGO_CROUT)
 static void cholesky(float *L, const float *A, int d)
 {
@@ -106,7 +96,6 @@ static void cholesky(float *L, const float *A, int d)
 }
 #endif
 
-/* ----------------------------------------------------------------- */
 int main(int argc, char **argv)
 {
     assert(argc == 2);
@@ -120,7 +109,7 @@ int main(int argc, char **argv)
 
     build_spd(A, d);
 
-    /* ---- PAPI setup: native event for L1 data cache load misses --- */
+    /* PAPI init */
     int ret = PAPI_library_init(PAPI_VER_CURRENT);
     if (ret != PAPI_VER_CURRENT)
         fprintf(stderr, "PAPI_library_init failed: %d\n", ret);
