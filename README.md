@@ -4,7 +4,7 @@
 
 **Empirical L1 cache behaviour of four quantitative finance kernels on AMD EPYC**
 
-<sub>Cholesky · Monte Carlo paths · GARCH(1,1) MLE · dense GEMM — instrumented with PAPI hardware counters on Indiana University's Big Red 200.</sub>
+<sub>Cholesky · Monte Carlo paths · GARCH(1,1) MLE · dense GEMM - instrumented with PAPI hardware counters on Indiana University's Big Red 200.</sub>
 
 <br/>
 
@@ -25,14 +25,14 @@ Most papers that talk about "cache-friendly finance code" argue from the algorit
 | # | Finding | So what |
 |---|--------|---------|
 | **1** | **Cholesky: layout dominates algorithm.** Row-major vs column-major → **28× variation** in L1 misses. Banachiewicz vs Crout → <3%. | If you're profiling Cholesky and only swapping algorithms, you're optimising the wrong axis. |
-| **2** | **Monte Carlo: sharp L1 phase transition.** A **1,657× jump** in L1 misses between portfolio dim `d=50` and `d=100` — coincides with the triangular factor crossing the 32 KB L1d boundary. | Portfolio sizing decisions hide a hardware cliff. Pricing d=100 isn't 2× harder than d=50; it's two orders of magnitude harder. |
-| **3** | **GARCH: compute-bound despite cache misses.** A **500× L1 miss rate increase** costs only **3%** throughput. | The GARCH recurrence is serialised by loop-carried dependency. The cache is innocent — the dependency chain is the bottleneck. |
+| **2** | **Monte Carlo: sharp L1 phase transition.** A **1,657× jump** in L1 misses between portfolio dim `d=50` and `d=100` - coincides with the triangular factor crossing the 32 KB L1d boundary. | Portfolio sizing decisions hide a hardware cliff. Pricing d=100 isn't 2× harder than d=50; it's two orders of magnitude harder. |
+| **3** | **GARCH: compute-bound despite cache misses.** A **500× L1 miss rate increase** costs only **3%** throughput. | The GARCH recurrence is serialised by loop-carried dependency. The cache is innocent - the dependency chain is the bottleneck. |
 
 ---
 
 ## Why this exists
 
-Quant workflows get rewritten for speed constantly, but most "optimisation" is guesswork against an abstracted cost model. The hardware tells a different story. This repo is a small, reproducible argument for **measuring before tuning** — and for treating the L1 data cache as a first-class citizen in numerical finance.
+Quant workflows get rewritten for speed constantly, but most "optimisation" is guesswork against an abstracted cost model. The hardware tells a different story. This repo is a small, reproducible argument for **measuring before tuning** - and for treating the L1 data cache as a first-class citizen in numerical finance.
 
 ---
 
@@ -72,7 +72,7 @@ sbatch run_finance_kernels.sh
 python3 plot_comparison.py
 ```
 
-**Prerequisites** — Linux · GCC 7.5+ · [PAPI](https://icl.utk.edu/papi/) 7.2+ · Python 3 with `matplotlib`, `pandas` · Slurm (optional, for the full sweep).
+**Prerequisites** - Linux · GCC 7.5+ · [PAPI](https://icl.utk.edu/papi/) 7.2+ · Python 3 with `matplotlib`, `pandas` · Slurm (optional, for the full sweep).
 
 ---
 
